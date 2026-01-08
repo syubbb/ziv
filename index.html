@@ -2,37 +2,215 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>Ziv 的 Firebase 測試</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ziv's 2048 Game</title>
+    <style>
+        body { background: #faf8ef; color: #776e65; font-family: "Clear Sans", Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .heading { width: 300px; display: flex; justify-content: space-between; align-items: center; }
+        h1 { font-size: 40px; margin: 0; }
+        .score-container { background: #bbada0; padding: 10px 20px; border-radius: 3px; color: white; text-align: center; }
+        #game-container { width: 300px; height: 300px; background: #bbada0; border-radius: 6px; position: relative; padding: 10px; box-sizing: border-box; touch-action: none; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); grid-gap: 10px; width: 100%; height: 100%; }
+        .cell { background: rgba(238, 228, 218, 0.35); border-radius: 3px; width: 62.5px; height: 62.5px; display: flex; align-items: center; justify-content: center; font-size: 25px; font-weight: bold; }
+        /* 數字顏色設定 */
+        .n2 { background: #eee4da; } .n4 { background: #ede0c8; } .n8 { background: #f2b179; color: white; }
+        .n16 { background: #f59563; color: white; } .n32 { background: #f67c5f; color: white; }
+        .n64 { background: #f65e3b; color: white; } .n128 { background: #edcf72; color: white; font-size: 20px; }
+        .n256 { background: #edcc61; color: white; font-size: 20px; } .n512 { background: #edc850; color: white; font-size: 20px; }
+        .n1024 { background: #edc53f; color: white; font-size: 15px; } .n2048 { background: #edc22e; color: white; font-size: 15px; }
+        .restart-btn { margin-top: 20px; padding: 10px 20px; background: #8f7a66; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; }
+    </style>
 </head>
 <body>
-    <h1>Firebase 載入狀態：<span id="status">檢查中...</span></h1>
 
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics-compat.js"></script>
+    <div class="heading">
+        <h1>2048</h1>
+        <div class="score-container">SCORE<br><span id="score">0</span></div>
+    </div>
+
+    <div id="game-container">
+        <div class="grid" id="grid"></div>
+    </div>
+
+    <button class="restart-btn" onclick="startGame()">新遊戲</button>
 
     <script>
-        // 2. 你的金鑰資料 (已經根據你提供的資料填好)
-        const firebaseConfig = {
-            apiKey: "AIzaSyAVGnTH6nyrsr3kczg9pqRjX7voVdkYHno",
-            authDomain: "zivqq-65b58.firebaseapp.com",
-            projectId: "zivqq-65b58",
-            storageBucket: "zivqq-65b58.firebasestorage.app",
-            messagingSenderId: "432256503660",
-            appId: "1:432256503660:web:a40bb0f21367ffe522ad49",
-            measurementId: "G-CXND1387NN"
-        };
+        const gridDisplay = document.getElementById('grid');
+        const scoreDisplay = document.getElementById('score');
+        let width = 4;
+        let squares = [];
+        let score = 0;
 
-        // 3. 初始化 Firebase (注意這裡的寫法與 import 不同)
-        try {
-            firebase.initializeApp(firebaseConfig);
-            firebase.analytics();
-            
-            document.getElementById('status').innerText = "✅ 成功連線！";
-            console.log("Firebase 載入成功！");
-        } catch (error) {
-            document.getElementById('status').innerText = "❌ 發生錯誤";
-            console.error("初始化失敗：", error);
+        // 建立遊戲棋盤
+        function createBoard() {
+            for (let i = 0; i < width * width; i++) {
+                let cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.innerHTML = "";
+                gridDisplay.appendChild(cell);
+                squares.push(cell);
+            }
+            generate();
+            generate();
         }
+
+        // 隨機產生 2 或 4
+        function generate() {
+            let randomNumber = Math.floor(Math.random() * squares.length);
+            if (squares[randomNumber].innerHTML === "") {
+                squares[randomNumber].innerHTML = Math.random() > 0.1 ? 2 : 4;
+                updateStyles();
+                checkForGameOver();
+            } else generate();
+        }
+
+        function updateStyles() {
+            squares.forEach(square => {
+                square.className = 'cell';
+                if (square.innerHTML) square.classList.add('n' + square.innerHTML);
+            });
+        }
+
+        // 滑動邏輯 (以向右為例)
+        function moveRight() {
+            for (let i = 0; i < 16; i++) {
+                if (i % 4 === 0) {
+                    let totalOne = squares[i].innerHTML;
+                    let totalTwo = squares[i+1].innerHTML;
+                    let totalThree = squares[i+2].innerHTML;
+                    let totalFour = squares[i+3].innerHTML;
+                    let row = [parseInt(totalOne) || 0, parseInt(totalTwo) || 0, parseInt(totalThree) || 0, parseInt(totalFour) || 0];
+                    
+                    let filteredRow = row.filter(num => num);
+                    let missing = 4 - filteredRow.length;
+                    let zeros = Array(missing).fill("");
+                    let newRow = zeros.concat(filteredRow);
+
+                    squares[i].innerHTML = newRow[0];
+                    squares[i+1].innerHTML = newRow[1];
+                    squares[i+2].innerHTML = newRow[2];
+                    squares[i+3].innerHTML = newRow[3];
+                }
+            }
+        }
+
+        function moveLeft() {
+            for (let i = 0; i < 16; i++) {
+                if (i % 4 === 0) {
+                    let totalOne = squares[i].innerHTML;
+                    let totalTwo = squares[i+1].innerHTML;
+                    let totalThree = squares[i+2].innerHTML;
+                    let totalFour = squares[i+3].innerHTML;
+                    let row = [parseInt(totalOne) || 0, parseInt(totalTwo) || 0, parseInt(totalThree) || 0, parseInt(totalFour) || 0];
+
+                    let filteredRow = row.filter(num => num);
+                    let missing = 4 - filteredRow.length;
+                    let zeros = Array(missing).fill("");
+                    let newRow = filteredRow.concat(zeros);
+
+                    squares[i].innerHTML = newRow[0];
+                    squares[i+1].innerHTML = newRow[1];
+                    squares[i+2].innerHTML = newRow[2];
+                    squares[i+3].innerHTML = newRow[3];
+                }
+            }
+        }
+
+        function combineRow() {
+            for (let i = 0; i < 15; i++) {
+                if (squares[i].innerHTML === squares[i+1].innerHTML && squares[i].innerHTML !== "" && (i+1)%4 !== 0) {
+                    let combinedTotal = parseInt(squares[i].innerHTML) + parseInt(squares[i+1].innerHTML);
+                    squares[i].innerHTML = combinedTotal;
+                    squares[i+1].innerHTML = "";
+                    score += combinedTotal;
+                    scoreDisplay.innerHTML = score;
+                }
+            }
+        }
+
+        // (向上、向下以及垂直合併的邏輯與水平類似，此處略簡以維持長度)
+        // 為了讓你能直接玩，我們加上鍵盤監聽
+        function control(e) {
+            if(e.keyCode === 37) keyLeft();
+            else if(e.keyCode === 38) keyUp();
+            else if(e.keyCode === 39) keyRight();
+            else if(e.keyCode === 40) keyDown();
+        }
+        document.addEventListener('keyup', control);
+
+        function keyRight() { moveRight(); combineRow(); moveRight(); generate(); }
+        function keyLeft() { moveLeft(); combineRow(); moveLeft(); generate(); }
+
+        // 向上與向下邏輯簡單化處理
+        function moveDown() {
+            for (let i = 0; i < 4; i++) {
+                let totalOne = squares[i].innerHTML;
+                let totalTwo = squares[i+width].innerHTML;
+                let totalThree = squares[i+(width*2)].innerHTML;
+                let totalFour = squares[i+(width*3)].innerHTML;
+                let column = [parseInt(totalOne) || 0, parseInt(totalTwo) || 0, parseInt(totalThree) || 0, parseInt(totalFour) || 0];
+
+                let filteredColumn = column.filter(num => num);
+                let missing = 4 - filteredColumn.length;
+                let zeros = Array(missing).fill("");
+                let newColumn = zeros.concat(filteredColumn);
+
+                squares[i].innerHTML = newColumn[0];
+                squares[i+width].innerHTML = newColumn[1];
+                squares[i+(width*2)].innerHTML = newColumn[2];
+                squares[i+(width*3)].innerHTML = newColumn[3];
+            }
+        }
+        function moveUp() {
+            for (let i = 0; i < 4; i++) {
+                let totalOne = squares[i].innerHTML;
+                let totalTwo = squares[i+width].innerHTML;
+                let totalThree = squares[i+(width*2)].innerHTML;
+                let totalFour = squares[i+(width*3)].innerHTML;
+                let column = [parseInt(totalOne) || 0, parseInt(totalTwo) || 0, parseInt(totalThree) || 0, parseInt(totalFour) || 0];
+
+                let filteredColumn = column.filter(num => num);
+                let missing = 4 - filteredColumn.length;
+                let zeros = Array(missing).fill("");
+                let newColumn = filteredColumn.concat(zeros);
+
+                squares[i].innerHTML = newColumn[0];
+                squares[i+width].innerHTML = newColumn[1];
+                squares[i+(width*2)].innerHTML = newColumn[2];
+                squares[i+(width*3)].innerHTML = newColumn[3];
+            }
+        }
+        function combineColumn() {
+            for (let i = 0; i < 12; i++) {
+                if (squares[i].innerHTML === squares[i+width].innerHTML && squares[i].innerHTML !== "") {
+                    let combinedTotal = parseInt(squares[i].innerHTML) + parseInt(squares[i+width].innerHTML);
+                    squares[i].innerHTML = combinedTotal;
+                    squares[i+width].innerHTML = "";
+                    score += combinedTotal;
+                    scoreDisplay.innerHTML = score;
+                }
+            }
+        }
+        function keyUp() { moveUp(); combineColumn(); moveUp(); generate(); }
+        function keyDown() { moveDown(); combineColumn(); moveDown(); generate(); }
+
+        function checkForGameOver() {
+            let zeros = 0;
+            for (let i=0; i < squares.length; i++) {
+                if (squares[i].innerHTML == "") zeros++;
+            }
+            if (zeros === 0) alert("遊戲結束！你的得分是 " + score);
+        }
+
+        function startGame() {
+            gridDisplay.innerHTML = "";
+            squares = [];
+            score = 0;
+            scoreDisplay.innerHTML = 0;
+            createBoard();
+        }
+
+        startGame();
     </script>
 </body>
 </html>
