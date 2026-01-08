@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>我的 Firebase 網頁</title>
+</head>
+<body>
+    <h1>Firebase 測試頁面</h1>
+    <div id="status">正在載入 Firebase...</div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
+
+    <script>
+        // 1. 這裡填入你從 Firebase 專案設定複製出來的金鑰
+        const firebaseConfig = {
+  	apiKey: "AIzaSyAVGnTH6nyrsr3kczg9pqRjX7voVdkYHno",
+  	authDomain: "zivqq-65b58.firebaseapp.com",
+  	projectId: "zivqq-65b58",
+  	storageBucket: "zivqq-65b58.firebasestorage.app",
+  	messagingSenderId: "432256503660",
+  	appId: "1:432256503660:web:a40bb0f21367ffe522ad49",
+        };
+
+        // 2. 初始化 Firebase
+        try {
+            const app = firebase.initializeApp(firebaseConfig);
+            document.getElementById('status').innerText = "Firebase 連線成功！";
+        } catch (e) {
+            console.error(e);
+            document.getElementById('status').innerText = "連線失敗，請檢查金鑰。";
+        }
+    </script>
+</body>
+</html>
